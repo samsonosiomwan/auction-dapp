@@ -6,10 +6,7 @@ import "./interfaces/auctionInterface.sol";
 
 
 contract Auction is IAuction{
-    address payable public owner;
-    uint public startBlock;
-    uint public endBlock;
-    string public ipfsHash;
+   
 
     enum State {Started, Running,Ended, Canceled}
     State public auctionStatus;
@@ -20,11 +17,17 @@ contract Auction is IAuction{
     mapping(address => uint) public bids;
     uint bidIncrement;
 
+    address payable public owner;
+    uint public startAuction;
+    uint public endAuction;
+    string public ipfsHash;
+
+
     constructor(){
         owner = payable(msg.sender);
         auctionStatus = State.Running;
-        startBlock = block.number;
-        endBlock = startBlock + 40320;
+        startAuction = block.number;
+        endAuction = startAuction + 40320;
         ipfsHash = "";
         bidIncrement = 100;
     }
@@ -35,12 +38,12 @@ contract Auction is IAuction{
     }   
 
     modifier afterStart(){
-        require(block.number >= startBlock);
+        require(block.number >= startAuction);
         _;
     }
 
     modifier beforeEnd(){
-        require(block.number <= endBlock);
+        require(block.number <= endAuction);
         _;
     }
 
@@ -50,7 +53,7 @@ contract Auction is IAuction{
     }
 
 
-    function min(uint a, uint b) pure internal returns(uint){
+    function minBid(uint a, uint b) pure internal returns(uint){
         if(a <= b) {
             return a;
         }else{
@@ -73,16 +76,16 @@ contract Auction is IAuction{
         bids[msg.sender] = currentBid;
 
         if(currentBid <= bids[highestBidder]){
-            highestBindingBid = min(currentBid + bidIncrement, bids[highestBidder]);
+            highestBindingBid = minBid(currentBid + bidIncrement, bids[highestBidder]);
         }else{
-            highestBindingBid = min(currentBid, bids[highestBidder] + bidIncrement);
+            highestBindingBid = minBid(currentBid, bids[highestBidder] + bidIncrement);
             highestBidder = payable(msg.sender);
         }
 
     }
 
     function finalizeAuction() public {
-        require(auctionStatus == State.Canceled || block.number > endBlock);
+        require(auctionStatus == State.Canceled || block.number > endAuction);
         require(msg.sender == owner || bids[msg.sender] > 0);
 
         address payable recipient;
